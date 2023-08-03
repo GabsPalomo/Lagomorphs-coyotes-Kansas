@@ -1,5 +1,3 @@
-## Created by Mason Fidino 2022-07-22 
-
 model{
   ###########################################
   # Data that needs to be supplied to model #
