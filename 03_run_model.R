@@ -21,12 +21,16 @@ data_list <- list(
   nparm_pred_rho = nparm_pred_rho
 )
 
-# get parameters to track
+# get parameters to track, that is the helpful part with providing initial
+#  values to all of your parameters!
 params <- names(my_inits(1))
 # don't track the z array (unless you really want to)
 params <- params[-grep("_z$|RNG", params)]
 
+## These parms correspond with what is in the model 
+
 ## initial values -----------------------------------------------------------
+
 inits1 <- my_inits(3)
 inits2 <- my_inits(3)
 inits3 <- my_inits(3)
@@ -40,14 +44,14 @@ nb <- 30000 # number of burning
 nt <- 10 # number of thinning 
 
 iterations <- ((ni-nb)/nt)*nc
-iterations #150,000
-(iterations/nc) #50,000 per chain (3 chains)
+iterations #60,000 
+(iterations/nc) #20,000 per chain (3)
 
 ##jagsui will produce (niter-nburnin)/nthin as the number of steps per chain as an end result
 
-# fitting the model in JAGS using jagsUI----------------------------------------
+# fitting the model
 fit <- jags(data = data_list, 
-            inits = list(inits1, inits2, inits3), # initial values per chain
+            inits = list(inits1, inits2, inits3), # I need to provide initial values per chain
             parameters.to.save = params,
             model.file = 'big_pred_model.R', 
             n.chains = nc, 
@@ -58,12 +62,12 @@ fit <- jags(data = data_list,
             parallel = T)
 
 # Results MCMC -------------------------------------------------------------
-## saveRDS(fit, "fit.rds")
+
+# saveRDS(fit, "2022_09_15_fit.rds")
+readRDS('./rds/2022_09_15_fit.rds')
+
 fit
 summary(fit)
-names(fit)
-plot(fit)
-traceplot(fit)
 # Summary for model 'big_pred_model.R' 
 # Saved parameters: pred_beta pred_theta pred_alpha inxs_b0 inxs_beta prey_theta prey_beta prey_alpha deviance 
 # MCMC ran in parallel for 1079.712 minutes at time 2022-09-09 16:11:03.
@@ -81,7 +85,11 @@ traceplot(fit)
 # pD = 4060.2 and DIC = 9754.678 
 
 
-# Use package MCMCvis to visualize traceplots ---------------------------------
+
+names(fit)
+plot(fit)
+traceplot(fit)
+
 library(MCMCvis)
 MCMCplot(fit,
          params = params,
@@ -90,32 +98,42 @@ MCMCplot(fit,
          ref_ovl = FALSE)
 
 MCMCsummary(fit)
-
 # Put summary in a table and export
 results <- MCMCsummary(fit, round = 2)
 library(kableExtra)
 results %>%
   kbl() %>%
-  kable_styling(full_width = FALSE) %>%
-  save_kable(file = "summary.pdf", self_contained = TRUE)
+  kable_styling(full_width = FALSE) 
+# %>%
+#   save_kable(file = "2022_09_15_summary.pdf", self_contained = TRUE)
 
 # Export pdf with trace plots and density plots for each parameter
-MCMCtrace(fit,
-          iter = 10000,
-          filename = "traceplot.pdf",
-          wd = getwd())
+# MCMCtrace(fit,
+#           iter = 10000,
+#           filename = "2022_09_15_traceplot.pdf",
+#           wd = getwd())
 
-# Overall Prey and Predator occupancy results across all sites -----------------
+# Overall Prey and Predator occupancy results across all sites ----------------------------------------------------------
+# You don't want to make predictions from the mean of each posterior.
+# Rather, you want to do the predictions across the posterior and then calculate
+# the mean (or median). 
 mcmc_list <- bbsBayes::get_mcmc_list(fit) # to see objects in mcmc 
+# we see in mcmc_list that there is a list called sims.list which is what we want
 tmp <- fit$sims.list # sims.list contains vectorized posterior samples produced by jagsUI
 names(tmp)
 # "pred_beta"  "pred_theta" "pred_alpha" "inxs_b0"    "inxs_beta"  "prey_theta"
 # "prey_beta"  "prey_alpha" "deviance" 
 
-# Average occupancy across study for prey --------------------------------------
+# Average occupancy across study for prey ---------------------------------------
 # Summary and traceplots
 print(fit_sum <- MCMCsummary(fit, round = 2))
-# write.csv(fit_sum, "fit_sum.csv")
+# write.csv(fit_sum, "2022_09_07_fit.csv")
+mcmc_list <- bbsBayes::get_mcmc_list(fit) # to see objects in mcmc 
+# we see in mcmc_list that there is a list called sims.list which is what we want
+tmp <- fit$sims.list # sims.list contains vectorized posterior samples produced by jagsUI
+names(tmp)
+# "pred_beta"  "pred_theta" "pred_alpha" "inxs_b0"    "inxs_beta"  "prey_theta"
+# "prey_beta"  "prey_alpha" "deviance" 
 
 prey_order <- c("btjr", "ectr")
 
@@ -137,7 +155,7 @@ prey_occ1 <- t(
 
 prey_occ1
 
-#Predator influence on prey occupancy overall sites
+# Predator influence on prey occupancy overall sites
 # Above: This would be prey occupancy given the absence of all the other
 #  predator species. If we want to get the average we should also 
 #  add in the expected occupancy of the predator species
@@ -208,23 +226,26 @@ prey_occ %>%
               ))-> prey_occ_g
 prey_occ_g
 
-# Average occupancy across study for predators.--------------------------------
+
+
+
+#├ Average occupancy across study for predators.--------------------------------
 # Summary and traceplots
 print(fit_sum <- MCMCsummary(fit, round = 2))
 # write.csv(fit_sum, "2022_09_07_fit.csv")
 mcmc_list <- bbsBayes::get_mcmc_list(fit) # to see objects in mcmc 
+# we see in mcmc_list that there is a list called sims.list which is what we want
 tmp <- fit$sims.list # sims.list contains vectorized posterior samples produced by jagsUI
 names(tmp)
 # "pred_beta"  "pred_theta" "pred_alpha" "inxs_b0"    "inxs_beta"  "prey_theta"
 # "prey_beta"  "prey_alpha" "deviance" 
 
-predator_order <- c("coyote", "badger", "swift fox") 
+predator_order <- c("coyote", "badger", "swift fox") # removed bobcat
 
 ## Predator occupancy estimate overall sites
-psi1 <- plogis(tmp$pred_beta[,,1]) 
-psi2 <- plogis(tmp$pred_beta[,,1] + tmp$pred_theta) 
-eoc <- psi1 / (psi1 + (1 - psi2)) 
-
+psi1 <- plogis(tmp$pred_beta[,,1]) #vector
+psi2 <- plogis(tmp$pred_beta[,,1] + tmp$pred_theta) #vector
+eoc <- psi1 / (psi1 + (1 - psi2)) #vector
 # Use apply to estimate eoc for all species (columns in the tmp$pred array)
 pred_occ <- t(
   apply(
@@ -264,13 +285,13 @@ t.all.occ <- rbind(t.prey.occ, t.pred.occ)
 t.all.occ
 
 # occ_g %>% 
-#   save_kable("occ_table.png", 
+#   save_kable("figures_06/occ_table_nobob.png", 
 #              self_contained = TRUE,
 #              density = 500)
 
 
-# Overall prey detection estimate across all sites. ----------------------------
-# same thing for detection, don't need to do it piece wise
+# Overall prey detection estimate across all sites. -------------------------------------------
+# same thing for detection, dont need to do it piecewise
 prey_det <- t(
   apply(
     plogis(tmp$prey_alpha[,,1]), #This is what I want to apply to all the columns in my array
@@ -301,7 +322,7 @@ occ.det
 
 
 # Overall predator detection estimate across all sites. -------------------------------------------
-# same thing for detection, don't need to do it piece wise
+# same thing for detection, dont need to do it piecewise
 pred_det <- t(
   apply(
     plogis(tmp$pred_alpha[,,1]), #This is what I want to apply to all the columns in my array
@@ -310,7 +331,6 @@ pred_det <- t(
     probs = c(0.025,0.5,0.975)
   )
 )
-
 pred_det
 pred_det %>% 
   as.data.frame() %>% 
@@ -350,9 +370,9 @@ all.t %>%
                 vline = 0.5)) -> det_g
 det_g
 
-det_g %>% 
-  save_kable("figures_06/occ_det_table_final.png",
-             self_contained = TRUE,
-             density = 700)
+# det_g %>% 
+#   save_kable("figures_06/occ_det_table_final.png",
+#              self_contained = TRUE,
+#              density = 700)
 
 # END -------------------------------------------------------------------------
