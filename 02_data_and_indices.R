@@ -3,7 +3,7 @@
 ## Gabby Palomo and Mason Fidino 
 ## July 18 2022
 
-# Packages 
+# Packages ----------------------------------------------------------------
 library(readr)
 library(magrittr)
 library(tidyverse)
@@ -49,13 +49,12 @@ source("01_data_org.R")
 
 # make a FULL data.frame of sites & survey year, this is just
 # in case not all sites are sampled each year. 
-
 full_site <- expand.grid(
   Site = unique(sites$Site),
   SurveyYear = unique(sites$SurveyYear)
 )
 
-
+# Coyote 
 coydf <- data.frame(coy)
 coydf$Site <- sites$Site
 coydf$SurveyYear <- sites$SurveyYear
@@ -65,6 +64,7 @@ coydf <- dplyr::left_join(
   by = c("Site","SurveyYear")
 )
 
+# Badger 
 badgerdf <- data.frame(badger)
 badgerdf$Site <- sites$Site
 badgerdf$SurveyYear <- sites$SurveyYear
@@ -74,6 +74,7 @@ badgerdf <- dplyr::left_join(
   by = c("Site","SurveyYear")
 )
 
+# Swift Fox 
 sfoxdf <- data.frame(sfox)
 sfoxdf$Site <- sites$Site
 sfoxdf$SurveyYear <- sites$SurveyYear
@@ -88,7 +89,6 @@ J_vec <- length(grep("X", colnames(coydf))) -
   rowSums(is.na(coydf[,grep("^X", colnames(coydf))]))
 
 # compare to another specie to make sure its the same
-
 J_vec2 <- length(grep("X", colnames(sfoxdf))) -
   rowSums(is.na(sfoxdf[,grep("^X", colnames(sfoxdf))]))
 
@@ -126,7 +126,7 @@ pred_y[,3,] <- rowSums(sfoxdf[,grep("^X", colnames(sfoxdf))], na.rm=TRUE)
 # add NA if no sampling, and do a little check to make sure
 #  we are not writing over data
 to_na <- which(J == 0, arr.ind = TRUE)
-for(i in 1:3){ #I MODIFIED THIS TOO
+for(i in 1:3){ 
   for(j in 1:nrow(to_na)){
     be_0 <-   pred_y[
       to_na[j,1],
@@ -145,10 +145,9 @@ for(i in 1:3){ #I MODIFIED THIS TOO
   }
 }
 
-
 ## Prey response variable -----------------------------------------------------
 ## prey_y: nsite by nprey by nseason array.
-
+## Jackrabbit
 btjrdf <- data.frame(btjr)
 btjrdf$Site <- sites$Site
 btjrdf$SurveyYear <- sites$SurveyYear
@@ -158,6 +157,7 @@ btjrdf <- dplyr::left_join(
   by = c("Site","SurveyYear")
 )
 
+## Cottontail 
 ectrdf <- data.frame(ectr)
 ectrdf$Site <- sites$Site
 ectrdf$SurveyYear <- sites$SurveyYear
@@ -172,14 +172,14 @@ prey_y <- array(
   NA,
   dim = c(nrow(J),2,ncol(J))
 )
-# btjr
+# Blacktail: btjr
 prey_y[,1,] <- rowSums(btjrdf[,grep("^X", colnames(btjrdf))], na.rm=TRUE)
-#ectrdf
+# Cottontail: ectrdf
 prey_y[,2,] <- rowSums(ectrdf[,grep("^X", colnames(ectrdf))], na.rm=TRUE)
 
 dim(prey_y) #sites, prey species, years
 
-# and do the same NA stuff with prey_y. Looks like a
+# and do the same NA stuff with prey_y. 
 #  btjr
 to_na <- which(J == 0, arr.ind = TRUE)
 for(i in 1:2){
@@ -201,7 +201,6 @@ for(i in 1:2){
     }
   }
 }
-
 
 ## 1 Occupancy design matrix ------------------------------------------------------
 #├ Predators -------------------------------------------------------------------
@@ -271,3 +270,5 @@ nparm_pred_psi <- dim(pred_psi_design_matrix)[2]
 # 8. nparm_pred_rho: The number of predator parameters for rho (i.e., columns in the pred_rho_design_matrix).
 nparm_pred_rho <- dim(pred_rho_design_matrix)[2]
 # Latent state dominant species (ds) model
+
+# END ----------------------------------------------------------

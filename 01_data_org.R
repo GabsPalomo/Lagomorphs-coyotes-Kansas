@@ -30,14 +30,14 @@ sfox <- read_csv("data/sfox_dh.csv") %>%
 # input those sites and set the values as NA 
 # sites tell us that we have 1149 rows so all our detection histories have to have
 # 1149 rows. 
-
 sites <- read_csv("data/sites.csv")
-empty <-as.data.frame(lapply(bob, function(x) rep.int(NA, length(x))))
-empty$Site <- bob$Site
-empty$SurveyYear <- bob$SurveyYear
+empty <-as.data.frame(lapply(coy, function(x) rep.int(NA, length(x))))
+empty$Site <- coy$Site
+empty$SurveyYear <- coy$SurveyYear
+# Remove columns that start with'Coyote' and leave only Site and survey year
+empty <- empty[,-grep("Coyote", colnames(empty))]
 
-empty <- empty[,-grep("Bobcat", colnames(empty))]
-
+# Join the empty df with the other species detection histories 
 btjr <- left_join(empty, btjr, by = c("SurveyYear", "Site"))
 ectr <- left_join(empty, ectr, by = c("SurveyYear", "Site"))
 
@@ -45,7 +45,6 @@ ectr <- left_join(empty, ectr, by = c("SurveyYear", "Site"))
 btjr <- shrink(btjr[, grep("Occ", colnames(btjr))], 7) # each occasion is composed of 7 days
 ectr <- shrink(ectr[, grep("Occ", colnames(ectr))], 7)
 coy <- shrink(coy[,grep("Occ", colnames(coy))], 7)
-bob <- shrink(bob[,grep("Occ", colnames(bob))], 7)
 badger <- shrink(badger[,grep("Occ", colnames(badger))], 7)
 sfox <- shrink(sfox[,grep("Occ", colnames(sfox))], 7)
 
@@ -83,8 +82,7 @@ yeardf$y <- 1
 # If I have Year2019 =1 and Year2020 = 0 then it must be 2019 (1 0);
 # If I have Year2019 = 0 and Year2020 = 1 then it must be 2020 (0 1)
 year <- model.matrix(y~year, data = yeardf) 
-# For some weird reason it is still returning three columns, when
-#  the -1 was present. Worked around with this.
+# We need to remove the intercept column (for 2018)
 year <- year[,grep("year", colnames(year))]
 
 # Occupancy covariates -------------------------------------------------------------
@@ -124,7 +122,6 @@ cov <- dplyr::bind_rows(cov) # we unlist the elements and create a df
 dim(cov)
  
 #Now let's estimate the mean of each covariate across years. 
-
 cov_mean <- cov %>% 
   group_by(Site) %>% 
   select(VegHeight, GrassPrp, ForbPrp) %>% 
@@ -132,14 +129,10 @@ cov_mean <- cov %>%
 
 ## Site 294 (row 295) and site 339 (row 340) have NA across all years for all cov, so just to test the model
 ## I will place a 0 here but will have to figure how to deal with the data at some point. 
-
 cov_mean[295, 2:4] <- 0
 cov_mean[340, 2:4] <- 0
 
-
-
 #├ Landscape covariates ------------------------------------------------------
-
 landscape <- read_csv("data/landcover_scales.csv")
 
 landscape <- landscape %>%  
@@ -151,3 +144,4 @@ landscape <- landscape %>%
   mutate(PrairieTE_2k = SGPTE+MGPTE+TGPTE+SandsageTE) %>% 
   filter(SurveyYear == 2018) 
 
+# END------------------------------------------------------------------------

@@ -64,7 +64,7 @@ fit <- jags(data = data_list,
 # Results MCMC -------------------------------------------------------------
 
 # saveRDS(fit, "2022_09_15_fit.rds")
-readRDS('./rds/2022_09_15_fit.rds')
+fit <- readRDS('./rds/2022_09_15_fit.rds')
 
 fit
 summary(fit)
@@ -82,14 +82,13 @@ summary(fit)
 # Successful convergence based on Rhat values (all < 1.1). 
 # 
 # DIC info: (pD = var(deviance)/2) 
-# pD = 4060.2 and DIC = 9754.678 
-
+# pD = 4354.2 and DIC = 10177.93 
 
 
 names(fit)
-plot(fit)
-traceplot(fit)
-
+# plot(fit)
+# traceplot(fit)
+## Let's use MCMCvis to visualize the traceplots 
 library(MCMCvis)
 MCMCplot(fit,
          params = params,
@@ -141,7 +140,7 @@ prey_order <- c("btjr", "ectr")
 psi1prey <- plogis(tmp$prey_beta[,,1])
 psi2prey <- plogis(tmp$prey_beta[,,1] + tmp$prey_theta)
 eocprey <- psi1prey / (psi1prey + (1-psi2prey))
-eocprey
+head(eocprey)
 
 # Use apply to estimate eoc for all species (columns in the tmp$pred array)
 prey_occ1 <- t(
@@ -152,21 +151,24 @@ prey_occ1 <- t(
     probs = c(0.025,0.5,0.975) #argument of quantile function 
   )
 )
-
 prey_occ1
 
 # Predator influence on prey occupancy overall sites
 # Above: This would be prey occupancy given the absence of all the other
 #  predator species. If we want to get the average we should also 
 #  add in the expected occupancy of the predator species
+# predator order 
+pred_order <- c('coy', 'badger', 'sfox')
+# Predator estimate across all sites 
 pred_occ <- plogis(tmp$pred_beta)
 pred_occ2 <- plogis(tmp$pred_beta[,,1] + tmp$pred_theta)
 eocpred <- pred_occ[,,1] / (pred_occ[,,1] + (1 - pred_occ2))
 eocpred <- apply(eocpred, 2, median)
 
 # get predator 'influence' on prey given their expected occupancy
-pred_inf_prey1 <- sweep(tmp$inxs_b0[,1,],2, eocpred,"*")
-pred_inf_prey2 <- sweep(tmp$inxs_b0[,2,],2, eocpred,"*")
+# rows are iterations, columns are prey, arrays are predators [iterations, prey, predators]
+pred_inf_prey1 <- sweep(tmp$inxs_b0[,1,],2, eocpred,"*") #jackrabbit
+pred_inf_prey2 <- sweep(tmp$inxs_b0[,2,],2, eocpred,"*") #cottontail
 pred_inf_prey1 <- rowSums(pred_inf_prey1)
 pred_inf_prey2 <- rowSums(pred_inf_prey2)
 pred_inf_prey <- cbind(pred_inf_prey1, pred_inf_prey2)
@@ -204,11 +206,18 @@ prey_occ <- prey_occ %>%
 prey_occ
 
 prey_occ[1, 1] <- "jackrabbit"
-prey_occ[2, 1] <- "jackrabbit"
-prey_occ[3, 1] <- "cottontail"
+prey_occ[2, 1] <- "cottontail"
+prey_occ[3, 1] <- "jackrabbit"
 prey_occ[4, 1] <- "cottontail"
 
+# Reorder so they are all organized by species 
+prey_occ <- prey_occ[c(1, 3, 2, 4),]
+row.names(prey_occ) <- NULL
+
+# Put in a nice table to export 
+library(kableExtra)
 prey_occ %>% 
+  select(species, influence, '2.5%', '50%', '97.5%') %>% 
   mutate(visualization = "") %>% 
   relocate(species, influence, "50%", visualization) %>% 
   rename("occupancy" = "50%") %>% 
@@ -226,9 +235,6 @@ prey_occ %>%
               ))-> prey_occ_g
 prey_occ_g
 
-
-
-
 #├ Average occupancy across study for predators.--------------------------------
 # Summary and traceplots
 print(fit_sum <- MCMCsummary(fit, round = 2))
@@ -240,7 +246,7 @@ names(tmp)
 # "pred_beta"  "pred_theta" "pred_alpha" "inxs_b0"    "inxs_beta"  "prey_theta"
 # "prey_beta"  "prey_alpha" "deviance" 
 
-predator_order <- c("coyote", "badger", "swift fox") # removed bobcat
+predator_order <- c("coyote", "badger", "swift fox")
 
 ## Predator occupancy estimate overall sites
 psi1 <- plogis(tmp$pred_beta[,,1]) #vector
@@ -370,8 +376,9 @@ all.t %>%
                 vline = 0.5)) -> det_g
 det_g
 
-# det_g %>% 
-#   save_kable("figures_06/occ_det_table_final.png",
+# Export the final table as a png file
+# det_g %>%
+#   save_kable("tables/occ_det_table_final.png",
 #              self_contained = TRUE,
 #              density = 700)
 
