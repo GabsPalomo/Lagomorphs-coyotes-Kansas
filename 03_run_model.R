@@ -278,27 +278,23 @@ prey_occ$influence <- gsub(
   prey_occ$influence
 )
 
-
-
 # Put in a nice table to export 
 library(kableExtra)
-prey_occ %>% 
-  select(species, influence, '2.5%', '50%', '97.5%') %>% 
+prey_occ %>%
   mutate(visualization = "") %>% 
-  relocate(species, influence, "50%", visualization) %>% 
-  rename("occupancy" = "50%") %>% 
-  kbl(digits = 2) %>% 
+  relocate(visualization, .before = lower95) %>% 
+  kbl() %>% 
   kable_styling(font_size = 14) %>% 
   kable_classic(full_width = F, html_font = "Cambria") %>% 
-  add_header_above(c("" , "", "", "", "Confidence intervals" = 2), bold = TRUE) %>% 
+  add_header_above(c("" , "", "", "",  "Credible intervals" = 2), bold = TRUE) %>% 
   row_spec(0, bold = TRUE) %>% 
   column_spec(4, 
               image = spec_pointrange(
-                x = prey_occ[,4],
-                xmin = prey_occ[,3], 
+                x = prey_occ[,3],
+                xmin = prey_occ[,4], 
                 xmax = prey_occ[,5],
                 vline = 0.5
-              ))-> prey_occ_g
+              )) -> prey_occ_g
 prey_occ_g
 
 #├ Average occupancy across study for predators.--------------------------------
@@ -331,11 +327,7 @@ pred_occ <- t(
 prey_occ %>% 
   as.data.frame() %>% 
   mutate(visualization = "") %>% 
-  relocate(species, influence, "50%", visualization) %>% 
-  rename("Estimate" = "50%") %>% 
-  rename("Species" = "species") %>% 
-  rename("Influence" = "influence") %>% 
-  rename("Visualization" = "visualization")-> t.prey.occ
+  relocate(visualization, .before = lower95)-> t.prey.occ
 
 t.prey.occ
 
@@ -345,10 +337,9 @@ pred_occ %>%
          visualization = "", 
          influence = "-") %>% 
   relocate(species, influence, "50%", visualization) %>% 
-  rename("Estimate" = "50%") %>% 
-  rename("Species" = "species") %>% 
-  rename("Influence" = "influence") %>% 
-  rename("Visualization" = "visualization")-> t.pred.occ
+  rename("median" = "50%", 
+         "lower95" = "2.5%",
+         "upper95" = "97.5%")-> t.pred.occ
 
 t.pred.occ
 
@@ -381,13 +372,13 @@ prey_det %>%
          visualization = "",
          influence = "-") %>% 
   relocate(species, influence, "50%", visualization) %>% 
-  rename("Estimate" = "50%") %>% 
-  rename("Species" = "species") %>% 
-  rename("Influence" = "influence") %>% 
-  rename("Visualization" = "visualization") -> prey.det
+  rename("median" = "50%", 
+         "lower95" = "2.5%",
+         "upper95" = "97.5%") -> prey.det
+
+# Rename from btjr to jackrabbit 
 prey.det[1, 1] <- "jackrabbit"
 prey.det[2, 1] <- "cottontail"
-
 
 occ.det <- rbind(t.all.occ, prey.det)
 occ.det
@@ -410,10 +401,9 @@ pred_det %>%
          visualization = "",
          influence = "-") %>% 
   relocate(species, influence, "50%", visualization) %>% 
-  rename("Estimate" = "50%") %>% 
-  rename("Species" = "species") %>% 
-  rename("Influence" = "influence") %>% 
-  rename("Visualization" = "visualization") -> pred_det
+  rename("median" = "50%", 
+         "lower95" = "2.5%",
+         "upper95" = "97.5%") -> pred_det
 
 pred_det
 
@@ -427,25 +417,24 @@ all.t %>%
   kable_classic(full_width = F, html_font = "Cambria") %>% 
   add_header_above(c("" , "", "", "", "Credible intervals" = 2), bold = TRUE) %>% 
   row_spec(0, bold = TRUE) %>% 
-  pack_rows("Occupancy", 1,7) %>% 
-  pack_rows("Prey", 1, 4) %>%
-  pack_rows("Predator", 5, 7) %>% 
-  pack_rows("Detection", 8, 12) %>%  
-  pack_rows("Prey", 8, 9) %>% 
-  pack_rows("Predator", 10, 12) %>% 
-  row_spec(1:7, align = 'c') %>% 
+  pack_rows("Occupancy", 1,13) %>% 
+  pack_rows("Prey", 1, 10) %>%
+  pack_rows("Predator", 11, 13) %>% 
+  pack_rows("Detection", 14, 18) %>%  
+  pack_rows("Prey", 14, 15) %>% 
+  pack_rows("Predator", 16, 18) %>% 
+  row_spec(1:18, align = 'c') %>% 
   column_spec(4, 
               image = spec_pointrange(
                 x = all.t[,3],
                 xmin = all.t[,5], 
                 xmax = all.t[,6],
-                vline = 0.5)) -> det_g
+                vline = 0.5))-> det_g
 det_g
 
-# Export the final table as a png file
-# det_g %>%
-#   save_kable("tables/occ_det_table_final.png",
-#              self_contained = TRUE,
-#              density = 700)
-
+# Export the final table as a jpg file
+save_kable(det_g, 
+           file = "./tables/occ_det_table_final.jpg",
+           zoom = 2, 
+          density = 700)
 # END -------------------------------------------------------------------------
