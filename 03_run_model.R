@@ -165,54 +165,120 @@ pred_occ2 <- plogis(tmp$pred_beta[,,1] + tmp$pred_theta)
 eocpred <- pred_occ[,,1] / (pred_occ[,,1] + (1 - pred_occ2))
 eocpred <- apply(eocpred, 2, median)
 
-# get predator 'influence' on prey given their expected occupancy
-# rows are iterations, columns are prey, arrays are predators [iterations, prey, predators]
-pred_inf_prey1 <- sweep(tmp$inxs_b0[,1,],2, eocpred,"*") #jackrabbit
-pred_inf_prey2 <- sweep(tmp$inxs_b0[,2,],2, eocpred,"*") #cottontail
-pred_inf_prey1 <- rowSums(pred_inf_prey1)
-pred_inf_prey2 <- rowSums(pred_inf_prey2)
-pred_inf_prey <- cbind(pred_inf_prey1, pred_inf_prey2)
 
-# prey given eoc(predator) and the influence they have on prey
-psi1prey_gp <- plogis(
-  tmp$prey_beta[,,1] + pred_inf_prey
+# Calculate prey | predator
+# Looping here across each predator species.
+
+pred_inf_prey_results <- vector(
+  "list",
+  length = 4
 )
-psi2prey_gp <- plogis(tmp$prey_beta[,,1] + tmp$prey_theta + pred_inf_prey)
-eocprey_gp <- psi1prey_gp / (psi1prey_gp + (1-psi2prey_gp))
-
-colMeans(eocprey_gp)
-
-# Use apply to estimate eoc for all species (columns in the tmp$pred array)
-prey_occ2 <- t(
-  apply(
-    eocprey_gp, # data vector 
-    2, # it will be applied to columns, 1 means it will be applied to rows.
-    quantile, # function to apply to eoc data
-    probs = c(0.025,0.5,0.975) #argument of quantile function 
+for(i in 1:4){
+  if(i %in% 1:3){
+  # the probability on the logit scale is the intercept + the inxs intercept
+  pred_inf_prey <- tmp$prey_beta[,,1] + tmp$inxs_b0[,,i]
+  # add on theta for prey
+  pred_inf_prey_theta <- pred_inf_prey + tmp$prey_theta
+  pred_inf_prey <- plogis(pred_inf_prey)
+  prey_inf_prey_theta <- plogis(pred_inf_prey_theta)
+  prey_occ <-  pred_inf_prey / (pred_inf_prey + (1 - pred_inf_prey_theta))
+  prey_occ <- t(
+    round(
+      apply(
+        prey_occ,
+        2,
+        quantile,
+        probs = c(0.025,0.5,0.975)
+      )
+    ,2
+    )
   )
+  pred_inf_prey_results[[i]] <- data.frame(
+    species = prey_order,
+    influence = pred_order[i],
+    median = prey_occ[,2],
+    lower95 = prey_occ[,1],
+    upper95 = prey_occ[,3]
+  )
+  }else{
+    pred_inf_prey <- tmp$prey_beta[,,1] + apply(tmp$inxs_b0, c(1,2), sum)
+    # add on theta for prey
+    pred_inf_prey_theta <- pred_inf_prey + tmp$prey_theta
+    pred_inf_prey <- plogis(pred_inf_prey)
+    prey_inf_prey_theta <- plogis(pred_inf_prey_theta)
+    prey_occ <-  pred_inf_prey / (pred_inf_prey + (1 - pred_inf_prey_theta))
+    prey_occ <- t(
+      round(
+        apply(
+          prey_occ,
+          2,
+          quantile,
+          probs = c(0.025,0.5,0.975)
+        )
+        ,2
+      )
+    )
+    pred_inf_prey_results[[i]] <- data.frame(
+      species = prey_order,
+      influence = "all 3",
+      median = prey_occ[,2],
+      lower95 = prey_occ[,1],
+      upper95 = prey_occ[,3]
+    )
+  }
+  }
+
+
+pred_inf_prey_results <- c(
+  list(
+    data.frame(
+      species = prey_order,
+      influence = "no predator",
+      median = round(prey_occ1[,2],2),
+      lower95 = round(prey_occ1[,1],2),
+      upper95 = round(prey_occ1[,3],2)
+    )
+  ),
+  pred_inf_prey_results
 )
 
-prey_occ2 <- as.data.frame(prey_occ2, )
-rownames(prey_occ2) <- NULL
 
-prey_occ <- rbind(prey_occ1, prey_occ2)
-prey_occ
 
-prey_occ <- prey_occ %>% 
-  mutate(species = c('btjr', 'ectr', 'btjr', 'ectr')) %>% 
-  mutate(influence = c('no predator', 'no predator', 'predator', 'predator')) %>% 
-  relocate(species, influence)
+prey_occ<- do.call(
+  "rbind",
+  pred_inf_prey_results
+)
 
-prey_occ
+prey_occ$species <- gsub(
+  "btjr",
+  "jackrabbit",
+  prey_occ$species
+)
+prey_occ$species <- gsub(
+  "ectr",
+  "cottontail",
+  prey_occ$species
+)
 
-prey_occ[1, 1] <- "jackrabbit"
-prey_occ[2, 1] <- "cottontail"
-prey_occ[3, 1] <- "jackrabbit"
-prey_occ[4, 1] <- "cottontail"
+prey_occ$influence <- gsub(
+  "coy",
+  "coyote",
+  prey_occ$influence
+)
 
-# Reorder so they are all organized by species 
-prey_occ <- prey_occ[c(1, 3, 2, 4),]
-row.names(prey_occ) <- NULL
+prey_occ$influence <- gsub(
+  "sfox",
+  "swift fox",
+  prey_occ$influence
+)
+
+prey_occ$influence <- gsub(
+  "all 3",
+  "all 3 predators",
+  prey_occ$influence
+)
+
+
 
 # Put in a nice table to export 
 library(kableExtra)
