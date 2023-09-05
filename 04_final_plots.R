@@ -12,20 +12,21 @@ library(rphylopic)
 # Source functions and data ----------------------------------------------
 source("functions/silhouettes.R")
 source("02_data_and_indices.R")
-fit <- readRDS("~/02_Co_occurrence/Bayesian_cooccurrence/2022_09_15_fit.rds")
+fit <- readRDS("./rds/2022_09_15_fit.rds")
 
 # Get posterior data --------------------------------------------------------
-t <- MCMCsummary(fit, digits = 3)
-t <- tibble::rownames_to_column(t, "Parameter") %>% 
+fit_summary <- MCMCsummary(fit, digits = 3)
+fit_summary <- tibble::rownames_to_column(fit_summary, 
+                                          "Parameter") %>% 
   rename( lower2.5 = 4,
           upper97.5 = 6,
           median = 5)
 
-t %>% 
+fit_summary %>% 
   filter(!Parameter == 'deviance') %>% 
   ggplot(aes(x= median, y=Parameter))+
   geom_errorbar(aes(xmin = lower2.5, xmax=upper97.5),
-                width = 0, size = 2.5, color = "#92b6b1")+
+                width = 0, linewidth = 2.5, color = "#92b6b1")+
   geom_point(color= "#666a86", size = 3)+
   geom_vline(xintercept = 0, color = '#b2c9ab')+
   theme(axis.text = element_text(size = 14),
@@ -255,10 +256,10 @@ for(i in 1:length(cov_order)){
 ## Get data ready to plot 
 ## Extract data frames from list 
 library(tidyverse)
-map_dfr(prey_ests, ~as.data.frame(.x), .id = "id") -> tst
-nmtst <- names(tst)
+prey_df <- map_dfr(prey_ests, ~as.data.frame(.x), .id = "id")
+nmtst <- names(prey_df)
 
-tst %>% 
+prey_df %>% 
   rename_with(~str_replace(., 'swift.fox', 'swiftfox')) %>%
   rename_with(~str_replace(., 'no_predators', 'nopredators')) %>%
   pivot_longer(cols = !id, 
@@ -281,7 +282,7 @@ colors_pred2 <- c(
 )
 
 colors_pred3 <- c("#e07a5f","#3d405b","#81b29a","#f2cc8f")
-colors_pred3 <- c("#ee9b00","#0a9396","#bb3e03","#8a817c")
+colors_pred3 <- c("#f18805","#9631AA","#86bbbd","#8a817c")
 
 # Forbs has a different x scale so I plot it separate 
 frbplot <- all.prey.pred.g %>% 
@@ -289,7 +290,10 @@ frbplot <- all.prey.pred.g %>%
 
 ggplot(frbplot) +
   geom_line(aes(x=covariate, y=estimate, color = predator), size = 2)+
-  geom_ribbon(aes(x = covariate, ymin = lower95, ymax = upper95, fill=predator), alpha = 0.6)+
+  geom_ribbon(aes(x = covariate, 
+                  ymin = lower95, 
+                  ymax = upper95, 
+                  fill=predator), alpha = 0.2)+
   facet_grid(rows = vars(id),
              cols = vars(predator))+
   xlim(0, 0.3)+
@@ -304,7 +308,7 @@ ggplot(frbplot) +
         axis.title = element_text(size = 18, face = 'bold'),
         axis.text = element_text(size=16, color = 'black'),
         panel.grid.major.y = element_line(color = "gray80"),
-        strip.background = element_blank())-> p
+        strip.background = element_blank())-> pplot
         # strip.text = element_textbox_highlight(
         #   size = 12, 
         #   face = "bold",
@@ -316,7 +320,7 @@ ggplot(frbplot) +
         #   halign = 0.5, 
         #   padding = margin(5, 0, 5, 0)
         
-p
+pplot
 
 ggplot(mapping = aes(x=0:1, y=1))+
   theme_void()+
@@ -331,18 +335,18 @@ ggplot(mapping = aes(x=0:1, y=1))+
   annotation_custom(jack.s, ymin=0.7, ymax=0.85) +
   annotation_custom(cotton.s, ymin=0.25, ymax=0.4) -> prey.sil
 
-gridExtra::grid.arrange(pred.sil, p, heights=c(0.1, 0.9))->forbs.sil
+gridExtra::grid.arrange(pred.sil, pplot, heights=c(0.1, 0.9))->forbs.sil
 gridExtra::grid.arrange(forbs.sil, prey.sil, widths=c(0.9, 0.1))->forbs.sil
 
 forbs.sil
 
-# ggsave(filename = paste0("figures_06/",
-#                          "ForbsPrp_scale",
-#                          "_prey_occ_plot.png"),
-#        plot = forbs.sil,
-#        width = 15, 
-#        height = 10, 
-#        units = "in")
+ggsave(filename = paste0("./plots/",
+                         "ForbsPrp_scale",
+                         "_prey_occ_plot.png"),
+       plot = forbs.sil,
+       width = 15,
+       height = 10,
+       units = "in")
 
 
 ## Create function for sequential graphing of data by covariate (e.g., RowcropPrp_1k). 
@@ -364,9 +368,14 @@ make_plot <- function(data){
     plot <- data %>% 
       ggplot()+
       geom_line(data = filter(data, name == covar[i]),
-                aes(x=covariate, y=estimate, color = predator), size = 2)+
+                aes(x=covariate, y=estimate, color = predator), 
+                linewidth = 2)+
       geom_ribbon(data = filter(data, name == covar[i]),
-                  aes(x = covariate, ymin = lower95, ymax = upper95, fill=predator), alpha = 0.6)+
+                  aes(x = covariate, 
+                      ymin = lower95, 
+                      ymax = upper95, 
+                      fill=predator), 
+                  alpha = 0.2)+
       facet_grid(
         # data = filter(data, name == covar[i]),
         rows = vars(id),
@@ -401,16 +410,16 @@ make_plot <- function(data){
     gridExtra::grid.arrange(plot.sil, prey.sil, widths=c(0.9, 0.1))->plot.sil
     
         # create folder to save the plots to
-    if (dir.exists("figures_06")) { } 
-    else {dir.create("figures_06")}
+    if (dir.exists("plots")) { } 
+    else {dir.create("plots")}
     
     # save plots to the 'figures' folder
-    ggsave(filename = paste0("figures_06/",
+    ggsave(filename = paste0("./plots/",
                              covar[i],
                              "_prey_occ_plot.png"),
            plot = plot.sil,
-           width = 18, 
-           height = 12, 
+           width = 18,
+           height = 12,
            units = "in")
     
     # print each plot to screen
@@ -422,22 +431,50 @@ make_plot <- function(data){
 make_plot(all.prey.pred.g)-> test
 
 
-## Plot coefficients of each covariate and CI
+## Plot coefficients of each covariate and CI ------------------------------
 library(ggthemes)
 all.prey.pred.g %>% 
   group_by(id, name, predator) %>% 
-  summarise(mean = mean(estimate),
+  summarise(occupancy = mean(estimate),
             lower = quantile(estimate, c(0.05)),
-            upper = quantile(estimate, c(0.95))) -> data.mean
+            upper = quantile(estimate, c(0.95))) %>% 
+  mutate(name = case_when(name == 'ForbPrp' ~ 'Prp Forbs', 
+                          name == 'GrassPrp' ~ 'Prp Grass', 
+                          name == 'PrairieSum_1k' ~ 'Prp Prairie 1k', 
+                          name == 'VegHeight' ~ 'Vegetation H'),
+         id = case_when(id == 'btjr' ~ 'jackrabbit', 
+                          id == 'ectr' ~ 'cottontail'))-> data.mean
+
+colnames(data.mean)
+unique(data.mean$name)
+
+colors_var <- c(
+  "#4d7c8a","#8C2155","#9B9BC8","#EF8354"
+)
 
 data.mean %>% 
-  ggplot(aes(x = mean))+
+  ggplot(aes(x = occupancy))+
   facet_grid(vars(name), vars(id))+
-  tidybayes::geom_pointinterval(aes(x = mean, y = predator, xmin = lower, xmax = upper,
+  tidybayes::geom_pointinterval(aes(x = occupancy, 
+                                    y = predator, 
+                                    xmin = lower, 
+                                    xmax = upper,
                          group = id, color = name),
-                     fatten_point = 3)+
-  theme_hc()
-
+                     fatten_point = 3,
+                     linewidth = 3)+
+  scale_color_manual(values = colors_var)+
+  theme_hc()+
+  ylab('')+
+  theme(legend.position = 'none',
+        strip.background =element_blank(), 
+        strip.text = element_text(face = 'bold', size=16), 
+        axis.title.x = element_text(face = 'bold', size=16), 
+        axis.text = element_text(size=14))
+ggsave(filename = './plots/occ_coef.png', 
+       last_plot(),
+       width = 8,
+       height = 8,
+       units = "in")
 
 
 # Plot Detection --------------------------------------------------------------------
@@ -565,18 +602,17 @@ for(i in 1:length(cov_order)){
 }
 
 
-# plot them all out! One plot for each covariate.
-
+# Now we plot them all out! One plot for each covariate.
 
 ## Plot results using ggplot2 -----------------------------------------------------
 #├ Prey detection plots --------------------------------------------------------
 ## Get data ready to plot 
 ## Extract data frames from list 
 library(tidyverse)
-map_dfr(prey_ests, ~as.data.frame(.x), .id = "id") -> tst
-nmtst <- names(tst)
+map_dfr(prey_ests, ~as.data.frame(.x), .id = "id") -> prey_df
+nm_preydf <- names(prey_df)
 
-tst %>% 
+prey_df %>% 
   pivot_longer(cols = !id, 
                names_to = c("name", "variable"),
                names_pattern = "([A-Za-z0-9_]+)\\.([a-zA-Z\\d{2}]+)") %>% 
@@ -612,7 +648,8 @@ make_plot_det <- function(data){
       geom_line(data = filter(data, name == covar[i]),
                 aes(x=covariate, y=estimate, color = id), size = 1.5)+
       geom_ribbon(data = filter(data, name == covar[i]),
-                  aes(x = covariate, ymin = lower95, ymax = upper95, fill=id), alpha = 0.6)+
+                  aes(x = covariate, ymin = lower95, 
+                      ymax = upper95, fill=id), alpha = 0.2)+
       scale_color_manual(values = colors_prey)+
       scale_fill_manual(values = colors_prey)+
       facet_grid(
@@ -780,15 +817,14 @@ for(i in 1:length(cov_order)){
 }
 
 
-# plot them all out! One plot for each covariate.
-
+# Now we plot them all out! One plot for each covariate.
 
 ## Get data ready to plot 
 ## Extract data frames from list 
-map_dfr(pred_ests, ~as.data.frame(.x), .id = "id") -> tst
-nmtst <- names(tst)
+map_dfr(pred_ests, ~as.data.frame(.x), .id = "id") -> pred_df
+nm_preddf <- names(pred_df)
 
-tst %>% 
+pred_df %>% 
   pivot_longer(cols = !id, 
                names_to = c("name", "variable"),
                names_pattern = "([A-Za-z0-9_]+)\\.([a-zA-Z\\d{2}]+)") %>% 
@@ -829,7 +865,10 @@ make_plot_det <- function(data){
       geom_line(data = filter(data, name == covar[i]),
                 aes(x=covariate, y=estimate, color = id), size = 1.5)+
       geom_ribbon(data = filter(data, name == covar[i]),
-                  aes(x = covariate, ymin = lower95, ymax = upper95, fill=id), alpha = 0.6)+
+                  aes(x = covariate, 
+                      ymin = lower95, 
+                      ymax = upper95, 
+                      fill=id), alpha = 0.2)+
       scale_color_manual(values = colors_pred3)+
       scale_fill_manual(values = colors_pred3)+
       facet_grid(
@@ -848,17 +887,17 @@ make_plot_det <- function(data){
     
     
     # create folder to save the plots to
-    if (dir.exists("figures_06")) { } 
-    else {dir.create("figures_06")}
+    if (dir.exists("plots")) { } 
+    else {dir.create("plots")}
     
     # save plots to the 'figures' folder
-    ggsave(filename = paste0("figures_06/",
-                             covar[i],
-                             "_predator_det_plot.png"),
-           plot = plot,
-           width = 15, 
-           height = 10, 
-           units = "in")
+    # ggsave(filename = paste0("./plots/",
+    #                          covar[i],
+    #                          "_predator_det_plot.png"),
+    #        plot = plot,
+    #        width = 15, 
+    #        height = 10, 
+    #        units = "in")
     
     # print each plot to screen
     print(plot)
@@ -868,7 +907,6 @@ make_plot_det <- function(data){
 make_plot_det(det_predator_df)
 
 ## Let's plot predators and prey detection together in one plot per covar. 
-
 head(det_prey_df, 2)
 head(det_predator_df, 2)
 det_all_df <- rbind(det_prey_df, det_predator_df)
@@ -885,7 +923,7 @@ ggplot(mapping = aes(x=0:1, y=1))+
 det.sil
 
 # Color palette
-colors_pp <- c('#001219', '#005f73', colors_pred3)
+colors_pp <- c('#5F0F40', '#1e6091', colors_pred3)
 
 ## Create function for sequential graphing of data by covariate (e.g., RowcropPrp_1k). 
 make_plot_det <- function(data){
@@ -896,12 +934,28 @@ make_plot_det <- function(data){
   ))
   # a loop to produce the rest of the graphs 
   for (i in seq_along(covar)){
+    #Function to only use 2 decimal places on the y axis 
+    scaleFUN <- function(x) sprintf("%.1f", x)
+    # FUnction to delete leading zero in the x axis
+    dropLeadingZero <- function(l){
+      lnew <- c()
+      for(i in l){
+        if(i==0){ #zeros stay zero
+          lnew <- c(lnew,"0")
+        } else if (i>1){ #above one stays the same
+          lnew <- c(lnew, as.character(i))
+        } else
+          lnew <- c(lnew, gsub("(?<![0-9])0+", "", i, perl = TRUE))
+      }
+      as.character(lnew)
+    }
+    
     plot <- data %>% 
       ggplot()+
       geom_line(data = filter(data, name == covar[i]),
                 aes(x=covariate, y=estimate, color = id), size = 1.5)+
       geom_ribbon(data = filter(data, name == covar[i]),
-                  aes(x = covariate, ymin = lower95, ymax = upper95, fill=id), alpha = 0.6)+
+                  aes(x = covariate, ymin = lower95, ymax = upper95, fill=id), alpha = 0.2)+
       scale_color_manual(values = colors_pp)+
       scale_fill_manual(values = colors_pp)+
       facet_grid(
@@ -909,11 +963,13 @@ make_plot_det <- function(data){
         cols = vars(id))+
       labs(x = names[i],
            y = 'Detection')+
-      scale_y_continuous(breaks=seq(0,1, 0.2), limits = c(0, 1))+
+      scale_y_continuous(breaks=seq(0,1, 0.2), limits = c(0, 1),
+                         labels = dropLeadingZero)+
+      scale_x_continuous(labels = dropLeadingZero)+
       theme_classic()+
       theme(legend.position = "none",
-            axis.title = element_text(size = 18, face = 'bold'),
-            axis.text = element_text(size=16, color = 'black'),
+            axis.title = element_text(size = 26, face = 'bold'),
+            axis.text = element_text(size=20, color = 'black'),
             panel.grid.major.y = element_line(color = "gray80"),
             strip.background = element_blank(),
             strip.text = element_blank()
@@ -922,11 +978,11 @@ make_plot_det <- function(data){
     gridExtra::grid.arrange(det.sil, plot, heights=c(0.1, 0.9))->plot
     
     # create folder to save the plots to
-    if (dir.exists("figures_06")) { } 
-    else {dir.create("figures_06")}
+    if (dir.exists("plots")) { } 
+    else {dir.create("plots")}
     
     # save plots to the 'figures' folder
-    ggsave(filename = paste0("figures_06/",
+    ggsave(filename = paste0("./plots/",
                              covar[i],
                              "_pp_det_plot.png"),
            plot = plot,
