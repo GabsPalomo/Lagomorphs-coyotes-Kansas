@@ -8,11 +8,177 @@ library(jagsUI)
 library(MCMCvis)
 library(ggthemes)
 library(rphylopic)
+library(bayesplot)
+library(cowplot)
 
 # Source functions and data ----------------------------------------------
 source("functions/silhouettes.R")
 source("02_data_and_indices.R")
-fit <- readRDS("./rds/2022_09_15_fit.rds")
+fit <- readRDS("./2022_09_15_fit.rds")
+
+## Plot posterior distributions ----------------------------------------------------
+posterior_sims <- fit$sims.list # sims.list contains vectorized posterior samples produced by jagsUI
+names(posterior_sims)
+
+# Let's convert each matrix into a df 
+post_samples <- lapply(posterior_sims, function(x) as.data.frame(x))
+post_samples <- post_samples[-9] #Remove deviance 
+# Let's change the names of each column 
+preds <- c('coyote', 'badger', 'sfox')
+preys <- c('jackrabbit', 'cottontail')
+preds_det_covar <- c('coyote-intercept', 'coyote-vegH', 'coyote-prairie', 
+                     'badger-intercept', 'badger-vegH', 'badger-prairie', 
+                     'sfox-intercept', 'sfox-vegH', 'sfox-prairie')
+preys_det_covar <- c('jackrabbit-intercept', 'jackrabbit-vegH', 'jackrabbit-prairie', 
+                     'cottontail-intercept', 'cottontail-vegH', 'cottontail-prairie')
+b0prey_pred <- c('jackrabbit-coyote', 'jackrabbit-badger', 'jackrabbit-sfox',
+                 'cottontail-coyote', 'cottontail-badger', 'cottontail-sfox')
+prey_psi_covar <- c('jackrabbit-intercept', 'jackrabbit-forbs', 'jackrabbit-grass', 'jackrabbit-vegH', 'jackrabbit-prairie',
+                    'cottontail-intercept', 'cottontail-forbs', 'cottontail-grass', 'cottontail-vegH', 'cottontail-prairie')
+
+b_is <- c('jackrabbit-coyote-forbs','jackrabbit-badger-forbs', 'jackrabbit-sfox-forbs',
+          'jackrabbit-coyote-grass', 'jackrabbit-badger-grass', 'jackrabbit-sfox-grass',
+          'jackrabbit-coyote-vegH', 'jackrabbit-badger-vegH', 'jackrabbit-sfox-vegH',
+          'jackrabbit-coyote-prairie', 'jackrabbit-badger-prairie', 'jackrabbit-sfox-prairie',
+          'cottontail-coyote-forbs','cottontail-badger-forbs', 'cottontail-sfox-forbs',
+          'cottontail-coyote-grass', 'cottontail-badger-grass', 'cottontail-sfox-grass',
+          'cottontail-coyote-vegH', 'cottontail-badger-vegH', 'cottontail-sfox-vegH',
+          'cottontail-coyote-prairie', 'cottontail-badger-prairie', 'cottontail-sfox-prairie')
+
+names(post_samples$pred_beta) <- preds
+names(post_samples$pred_theta) <- preds
+names(post_samples$pred_alpha) <- preds_det_covar
+names(post_samples$prey_alpha) <- preys_det_covar
+names(post_samples$prey_theta) <- preys
+names(post_samples$inxs_b0) <- b0prey_pred
+names(post_samples$inxs_beta) <- b_is
+names(post_samples$prey_beta) <- prey_psi_covar
+
+post_samples <- lapply(post_samples, function(x)
+  x %>% 
+    pivot_longer(everything(), 
+                 names_to = 'observation', 
+                 values_to = 'values')
+  )
+
+## Let's separate the predator and prey models 
+post_sampleS_pred <- post_samples[c(1,2,3)]
+post_sampleS_prey <- post_samples[c(6,7,8)]
+post_inxs <- post_samples[c(4,5)]
+
+mypredplots <- list()
+mypreyplots <- list()
+
+## Predator model 
+col_pal1 <- c('#587b7c', '#713e86', '#f57600', 
+              '#c9d382', '#7fbed8', '#d8b0cc',
+              '#38875f', '#7f7ead', '#886a63',
+              '#234c5b', '#49608e', '#64447c')
+col_pal2 <- c('#c9d382', '#7fbed8', '#d8b0cc',
+              '#38875f', '#7f7ead', '#886a63',
+              '#234c5b', '#89d4d1', '#64447c')
+for(i in 1:length(post_sampleS_pred)){
+  mypredplots[[i]] <- ggplot(post_sampleS_pred[[i]], 
+                         aes(x=values, fill=observation))+
+    geom_density(aes(y = after_stat(density - 0.01 * group)), 
+                 alpha=0.3)+
+    theme_classic()+
+    theme(legend.position = 'none', 
+          legend.title = element_blank(), 
+          plot.title = element_text(hjust = 0, size = 18, face='bold'))+
+    ylab('')+
+    xlab(names(post_sampleS_pred)[[i]])+
+    scale_y_continuous(expand = c(0, 0))+
+    scale_fill_manual(values=col_pal1)
+}
+
+leg1 <- mypredplots[[1]]+
+  theme(legend.position = 'right')+
+  ggtitle('Predator model')
+titleplot <- get_title(leg1)
+leg1 <- get_legend(leg1)
+plot(leg1)
+
+leg2 <- mypredplots[[3]]+
+  scale_fill_manual(values=col_pal2)+
+  theme(legend.position = 'right')
+tp_rw <- plot_grid(titleplot)
+mp_rw <- plot_grid(mypredplots[[1]], mypredplots[[2]], leg1, ncol=3, rel_widths=c(1, 1, 0.2))
+bt_rw <- plot_grid(leg2)  
+plot_grid(tp_rw, mp_rw, bt_rw, nrow=3, rel_heights = c(0.1, 1, 1))->pred_plots
+
+## Prey model 
+for(i in 1:length(post_sampleS_prey)){
+  mypreyplots[[i]] <- ggplot(post_sampleS_prey[[i]], 
+                             aes(x=values, fill=observation))+
+    geom_density(aes(y = after_stat(density - 0.01 * group)), 
+                 alpha=0.3)+
+    theme_classic()+
+    theme(legend.position = 'right', 
+          legend.title = element_blank())+
+    ylab('')+
+    xlab(names(post_sampleS_prey)[[i]])+
+    scale_y_continuous(expand = c(0, 0))+
+    scale_fill_manual(values=col_pal1)
+}
+
+tp_rwy <- plot_grid(mypreyplots[[1]], mypreyplots[[3]],ncol=2, rel_widths=c(0.4, 0.6))
+bt_rwy <- plot_grid(mypreyplots[[2]])  
+cowplot::plot_grid(tp_rwy, bt_rwy, nrow = 2)->prey_plots
+
+## Now we do the inxs part 
+inxs_list1 <- post_samples[4]
+inxs_list2 <- post_samples[5]
+test <- lapply(inxs_list2, function(x) split(x, x$observation))
+test <- unlist(test, recursive = FALSE)
+nmt <- names(test)
+nmt <- str_remove_all(nmt, 'inxs_beta.')
+names(test) <- nmt
+
+names_gr <- c("cottontail-badger", "cottontail-coyote", "cottontail-sfox", 
+              "jackrabbit-badger", "jackrabbit-coyote", "jackrabbit-sfox")
+full_list <- list()
+names(full_list) <- names_gr
+for(i in 1:length(names_gr)){
+  full_list[[i]] <- names(test) %>% 
+    str_detect(names_gr[i]) %>% 
+    keep(test,.)
+}
+
+full_list2 <- list()
+names(full_list2) <- names_gr
+for(i in 1:length(full_list)){
+  full_list2[[i]] <- do.call(rbind, c(full_list[[i]], make.row.names=FALSE))
+}
+
+myinxsplots <- list()
+for(i in 1:length(full_list2)){
+  myinxsplots[[i]] <- ggplot(full_list2[[i]], 
+                             aes(x=values, fill=observation))+
+    geom_density(aes(y = after_stat(density - 0.01 * group)), 
+                 alpha=0.3)+
+    theme_classic()+
+    theme(legend.position = 'none', 
+          legend.title = element_blank(), 
+          plot.title = element_text(hjust = 0, 
+                                    size = 18, 
+                                    face='bold'))+
+    ylab('')+
+    xlab(paste0('individual x site: ', names_gr[[i]]))+
+    scale_y_continuous(expand = c(0, 0))+
+    scale_fill_manual(values=col_pal1, labels=c('Forbs', 'Grass', 'Prairie', 'Veg Height'))
+}
+
+plot1 <- myinxsplots[[1]]+
+  theme(legend.position = 'top')+
+  ggtitle('Individuals x site model')
+titleplot <- get_title(plot1)
+lgnd <- get_legend(plot1)
+trow <- plot_grid(titleplot)
+mrow <- plot_grid(plotlist = myinxsplots)
+brow <- plot_grid(lgnd)
+plot_grid(trow, mrow, brow, nrow = 3, 
+          rel_heights = c(0.1, 1, 0.1))
 
 # Get posterior data --------------------------------------------------------
 fit_summary <- MCMCsummary(fit, digits = 3)
