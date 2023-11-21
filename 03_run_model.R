@@ -278,13 +278,22 @@ prey_occ$influence <- gsub(
   prey_occ$influence
 )
 
+## Reorder prey_occ
+prey_occ <- prey_occ %>% 
+  mutate(species = factor(species, levels = c('jackrabbit', 'cottontail'))) %>% 
+  mutate(influence = factor(influence, levels = c('all 3 predators', 'coyote', 'badger', 'swift fox', 'no predator'))) %>% 
+  arrange(species, influence)
+
+prey_occ
+
 # Put in a nice table to export 
 library(kableExtra)
+library(dplyr)
 prey_occ %>%
   mutate(visualization = "") %>% 
   relocate(visualization, .before = lower95) %>% 
   kbl() %>% 
-  kable_styling(font_size = 14) %>% 
+  kable_styling(font_size = 18) %>% 
   kable_classic(full_width = F, html_font = "Cambria") %>% 
   add_header_above(c("" , "", "", "",  "Credible intervals" = 2), bold = TRUE) %>% 
   row_spec(0, bold = TRUE) %>% 
@@ -337,9 +346,9 @@ pred_occ %>%
          visualization = "", 
          influence = "-") %>% 
   relocate(species, influence, "50%", visualization) %>% 
-  rename("median" = "50%", 
-         "lower95" = "2.5%",
-         "upper95" = "97.5%")-> t.pred.occ
+  rename("Median" = "50%", 
+         "Lower95" = "2.5%",
+         "Upper95" = "97.5%")-> t.pred.occ
 
 t.pred.occ
 
@@ -372,9 +381,9 @@ prey_det %>%
          visualization = "",
          influence = "-") %>% 
   relocate(species, influence, "50%", visualization) %>% 
-  rename("median" = "50%", 
-         "lower95" = "2.5%",
-         "upper95" = "97.5%") -> prey.det
+  rename("Median" = "50%", 
+         "Lower95" = "2.5%",
+         "Upper95" = "97.5%") -> prey.det
 
 # Rename from btjr to jackrabbit 
 prey.det[1, 1] <- "jackrabbit"
@@ -401,19 +410,21 @@ pred_det %>%
          visualization = "",
          influence = "-") %>% 
   relocate(species, influence, "50%", visualization) %>% 
-  rename("median" = "50%", 
-         "lower95" = "2.5%",
-         "upper95" = "97.5%") -> pred_det
+  rename("Median" = "50%", 
+         "Lower95" = "2.5%",
+         "Upper95" = "97.5%") -> pred_det
 
 pred_det
 
 all.t <- rbind(occ.det, pred_det)
 
-all.t
+all.t <- all.t %>% 
+  rename("Species" = 'species', 
+         'Influence' = 'influence')
 
 all.t %>% 
   kbl(digits = 2) %>% 
-  kable_styling(font_size = 14) %>% 
+  kable_styling(font_size = 20) %>% 
   kable_classic(full_width = F, html_font = "Cambria") %>% 
   add_header_above(c("" , "", "", "", "Credible intervals" = 2), bold = TRUE) %>% 
   row_spec(0, bold = TRUE) %>% 

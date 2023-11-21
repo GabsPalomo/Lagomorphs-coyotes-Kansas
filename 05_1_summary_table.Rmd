@@ -1,0 +1,69 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+  keep_tex: yes
+latex_engine: pdflatex
+classoption: landscape
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(kableExtra)
+library(tidyverse)
+```
+
+**SM5.** Mean and 95% credible intervals for each parameter estimate of the multispecies cooccurrence model. Estimates are on the logit scale.
+
+```{r, echo=FALSE}
+fit_summary <- readRDS('./tables/params_table.rds')
+
+fit_summary %>% 
+  kbl(digits = 2, align = c('l', 'l', 'l', 'c', 'c', 'c', 'c', 'c'), 
+      booktabs = TRUE, 
+      format = 'latex',
+      longtable = TRUE, 
+      # make sure to FALSE so it will show latex notation
+      escape = FALSE) %>% 
+  kable_classic(full_width=FALSE, font_size=12) %>% 
+  pack_rows('Predator occupancy model', 1, 6) %>% 
+  pack_rows('Predator detection model', 7, 15, hline_before = TRUE) %>% 
+  pack_rows('Predator-prey co-occurrence model', 16, 57, hline_before = TRUE) %>% 
+  pack_rows('Prey detection model', 58, 63, hline_before = TRUE, hline_after = TRUE) %>% 
+  row_spec(0, bold=TRUE, font_size = 14, align='c') %>% 
+  add_header_above(c(" " = 6,
+                     "95% CI" = 2),
+                   font_size=18, 
+                   bold=TRUE, 
+                   align = 'c')->params_table
+
+params_table
+
+# fit_summary %>% 
+#   kbl(digits = 2, align = c('l','c', 'c', 'c', 'c', 'c'), 
+#       booktabs = TRUE, 
+#       format = 'latex', 
+#       longtable = TRUE, 
+#       # make sure to FALSE so it will show latex notation
+#       escape = FALSE) %>% 
+#   kable_classic(full_width=FALSE, font_size=12) %>% 
+#   pack_rows('Predator model', 1, 6) %>% 
+#   pack_rows('Prey model', 7, 48) %>% 
+#   pack_rows('jackrabbit', 7, 27, indent = FALSE, hline_after = TRUE) %>% 
+#   pack_rows('cottontail', 28, 48, indent = FALSE, hline_after = TRUE) %>% 
+#   pack_rows('Detection model', 49, 63, hline_after = TRUE) %>% 
+#   pack_rows('jackrabbit', 49, 51) %>% 
+#   pack_rows('cottontail', 52, 54) %>% 
+#   pack_rows('coyote', 55, 57) %>% 
+#   pack_rows('badger', 58, 60) %>% 
+#   pack_rows('swift fox', 61, 63) %>% 
+#   row_spec(0, bold=TRUE, font_size = 14, align='c') %>% 
+#   add_header_above(c(" " = 4,
+#                      "95% CI" = 2),
+#                    font_size=14, 
+#                    bold=TRUE, 
+#                    align = 'c')
+
+```
+
