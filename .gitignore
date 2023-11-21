@@ -8,7 +8,7 @@
 plots/posteriors_all_plots.jpg
 other_plots.R
 /tables
-/plots
-/plots2
-/rds
+old_plots/
+plots2/
+rds/
 posterior_check.R
