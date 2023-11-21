@@ -1,4 +1,4 @@
-# Mesopredators have differing influences on prey habitat use and diet activity in a multipredator landscape.
+# Mesopredators have differing influences on prey habitat use and diel activity in a multipredator landscape.
 
 Gabriela Palomo-Munoz, Mason Fidino, Ty J. Werdel, Colleen W. Piper, Travis Gallo, Matthew S. Peek, Andrew M. Ricketts, Adam A. Ahlers.
 
