@@ -29,7 +29,7 @@ The Bayesian model took several weeks to run, but I saved the output in a .rds f
 
 2.  `/figs` This folder contains all figures generated in this project. Stored as .png or .jpeg. NOT available in the repository but the figures are in the manuscript.
 
-3.  `/functions`
+3.  `/functions` This folder contains some long functions necessary for some data cleaning and analysis, as well as reading the silhouettes.
 
 4.  `/tables` This folder contains all tables generated in this project. Stored as .png or .jpeg. NOT available in the repository but the tables are in the manuscript.
 
@@ -37,7 +37,7 @@ The Bayesian model took several weeks to run, but I saved the output in a .rds f
 
 1.  `big_pred_model.R`
 
-This script contains the multi-species model made by Mason Fidino.
+This script contains the multi-species model made by Mason Fidino and Gabriela Palomo.
 
 2.  `01_data_org.R`
 
@@ -48,15 +48,13 @@ This document organizes the data to have it ready to create the objects that wil
 This is where we format the data (data and indices) to fit into the model.
 
 4.  `03_run_model.R`
+
     -   Here is the code to run the Bayesian model in JAGS.
 
     -   It also has the marginal occupancy and detection estimates of each species(prey and predator) organized in tables.
 
     -   It sources /functions/functions.R and the 02_data_indices.R file.
 
-```{=html}
-<!-- -->
-```
 5.  `04_final_plots.R`
 
 This is where I coded the predictions and final graphs. It sources the results of the Bayesian analysis from the document 2022_09_15_fit.rds
