@@ -15,7 +15,7 @@ library(ggh4x)
 # Source functions and data ----------------------------------------------
 source("functions/silhouettes.R")
 source("02_data_and_indices.R")
-fit <- readRDS("./2022_09_15_fit.rds")
+fit <- readRDS("./rds/2022_09_15_fit.rds")
 
 # Get posterior data --------------------------------------------------------
 mcmc_list <- bbsBayes::get_mcmc_list(fit) # to see objects in mcmc 
@@ -231,7 +231,7 @@ for(i in 1:length(cov_order)){
 ## Extract data frames from list 
 prey_df <- map_dfr(prey_ests, ~as.data.frame(.x), .id = "id")
 
-prey_df %>% 
+all.prey.pred.g <- prey_df %>% 
   rename_with(~str_replace(., 'swift.fox', 'swiftfox')) %>%
   rename_with(~str_replace(., 'no_predators', 'nopredators')) %>%
   pivot_longer(cols = !id, 
@@ -243,9 +243,9 @@ prey_df %>%
               values_from = value) %>% 
   select(!row) %>% 
   mutate_at(vars(id),
-            list(~ factor(., levels = c("btjr", "ectr"))))%>% 
+            list(~ factor(., levels = c("btjr", "ectr")))) %>%
   mutate_at(vars(predator),
-            list(~ factor(., levels = c("coyote", "badger", "swiftfox", "nopredators"))))->all.prey.pred.g
+            list(~ factor(., levels = c("coyote", "badger", "swiftfox", "nopredators"))))
 
 colors_pred <- c(
   '#4d194d', '#312244', '#065a82', '#1c7293', '#9eb3c2'
@@ -314,7 +314,7 @@ ggplot(mapping = aes(x=0:1, y=1))+
   annotation_custom(coyote.s, xmin = 0.06, xmax=0.2)+
   annotation_custom(badger.s, xmin = 0.27, xmax = 0.5)+
   annotation_custom(sfox.s, xmin = 0.57, xmax=0.7) +
-  annotation_custom(np.s, xmin=0.78, xmax=1.1)-> pred.sil 
+  annotation_custom(np.s, xmin=0.9, xmax=0.97)-> pred.sil 
 pred.sil
 
 ggplot(mapping = aes(x=1, y=0:1))+
@@ -332,10 +332,11 @@ gridExtra::grid.arrange(forbs.sil,prey.sil,  widths=c(0.9, 0.10))->forbs.sil
 
 forbs.sil
 
-ggsave(filename = paste0("./plots2/",
+ggsave(filename = paste0("./plots3/",
                          "ForbsPrp_scale",
                          "_prey_occ_plot.png"),
        plot = forbs.sil,
+       dpi = 600,
        width = 15,
        height = 10,
        units = "in")
@@ -414,7 +415,7 @@ make_plot <- function(data){
       annotation_custom(coyote.s, xmin = 0.06, xmax=0.2)+
       annotation_custom(badger.s, xmin = 0.27, xmax = 0.5)+
       annotation_custom(sfox.s, xmin = 0.57, xmax=0.7) +
-      annotation_custom(np.s, xmin=0.78, xmax=1.1)-> pred.sil 
+      annotation_custom(np.s, xmin=0.9, xmax=0.97)-> pred.sil 
     pred.sil
     
     ggplot(mapping = aes(x=1, y=0:1))+
@@ -437,14 +438,15 @@ make_plot <- function(data){
     # gridExtra::grid.arrange(plot.sil, prey.sil, widths=c(0.9, 0.1))->plot.sil
     
         # create folder to save the plots to
-    if (dir.exists("plots2")) { } 
-    else {dir.create("plots2")}
+    if (dir.exists("plots3")) { } 
+    else {dir.create("plots3")}
     
     # save plots to the 'figures' folder
-    ggsave(filename = paste0("./plots2/",
+    ggsave(filename = paste0("./plots3/",
                              covar[i],
                              "_prey_occ_plot.png"),
            plot = plot.sil,
+           dpi=600,
            width = 18,
            height = 12,
            units = "in")
@@ -944,7 +946,7 @@ gridExtra::grid.arrange(det.sil,sil_lab, pplot, heights=c(0.1, 0.05, 0.9)) ->plo
 
 gridExtra::grid.arrange(plot01, pplot, ncol=1) -> det_plots
 
-ggsave("./plots2/det_plot.png",
+ggsave("./plots3/det_plot.png",
        plot = det_plots,
        width = 20,
        height = 10,

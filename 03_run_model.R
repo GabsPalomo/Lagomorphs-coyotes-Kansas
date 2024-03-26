@@ -444,8 +444,8 @@ all.t %>%
 det_g
 
 # Export the final table as a jpg file
-save_kable(det_g, 
-           file = "./tables/occ_det_table_final.jpg",
-           zoom = 2, 
-          density = 700)
+# save_kable(det_g, 
+#            file = "./tables/occ_det_table_final.jpg",
+#            zoom = 2, 
+#           density = 700)
 # END -------------------------------------------------------------------------
