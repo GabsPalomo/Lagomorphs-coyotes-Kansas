@@ -1,11 +1,11 @@
 ---
 output:
   pdf_document: default
+  keep_tex: true
   html_document: default
-  keep_tex: yes
 latex_engine: pdflatex
 classoption: landscape
-fontsize: 12pt
+fontsize: 10pt
 ---
 
 ```{r setup, include=FALSE}
@@ -14,31 +14,129 @@ library(kableExtra)
 library(tidyverse)
 ```
 
-**SM5.** Mean and 95% credible intervals for each parameter estimate of the multispecies cooccurrence model. Estimates are on the logit scale.
+**SM5.** Mean and 95% credible intervals for each parameter estimate of the multispecies co-occurrence model. Estimates are on the logit scale.
 
-```{r, echo=FALSE}
-fit_summary <- readRDS('./tables/params_table.rds')
+```{r, echo=FALSE, results='asis'}
+param_list <- readRDS('./tables/params_table.rds')
 
-fit_summary %>% 
-  kbl(digits = 2, align = c('l', 'l', 'l', 'c', 'c', 'c', 'c', 'c'), 
-      booktabs = TRUE, 
-      format = 'latex',
+# Let's reorganize some rows so the info is more clear and understandable 
+param_list_test1 <- param_list |> # 1
+  slice(1:6)
+
+param_list_test2 <- param_list |> #2
+  slice(46:47)
+
+param_list_test3 <- param_list |> #3
+  slice(16:21)
+
+param_list_test31 <- param_list |> #3.1
+  slice(48:49)
+
+param_list_test4 <- param_list |> #4
+  slice(50:57)
+
+param_list_test5 <- param_list |> #5
+  slice(22:45)
+
+param_list_test6 <- param_list |> #6
+  slice(58:63)
+
+param_list_test7 <- param_list |> #7
+  slice(7:15)
+
+param_list_beta <- rbind(param_list_test3, param_list_test31)
+param_list_beta <- param_list_beta |> 
+  mutate(Prey = factor(Prey, levels = c('jackrabbit', 'cottontail')), 
+         Predator = factor(Predator, levels = c('no predators', 'coyote', 'badger', 'swift fox'))) |> 
+  arrange(Prey, Predator)
+  
+param_list_coo <- rbind(param_list_test4, param_list_test5)
+param_list_coo <- param_list_coo |> 
+  mutate(Prey = factor(Prey, levels = c('jackrabbit', 'cottontail')), 
+         Covariate = factor(Covariate, levels = c('prairie', 'vegHeight', 'grass', 'forbs'))) |> 
+  arrange(Prey, Covariate)
+
+param_list_final <- rbind(param_list_test1, 
+                          param_list_test2, 
+                          param_list_beta,
+                          param_list_coo,
+                          param_list_test6, 
+                          param_list_test7)
+
+param_list_final <- select(param_list_final, -id)
+
+## Check that the table looks good 
+## Knit it to pdf using an rmarkdown or quarto document
+param_list_final %>% 
+  kbl(digits = 2, 
+      align = c('l', 'l', 'l', 'l', 'c', 'c', 'l', 'c', 'c', 'c'), 
+      booktabs = TRUE,
+      row.names = FALSE,
+      # format = 'latex',
       longtable = TRUE, 
       # make sure to FALSE so it will show latex notation
       escape = FALSE) %>% 
-  kable_classic(full_width=FALSE, font_size=12) %>% 
-  pack_rows('Predator occupancy model', 1, 6) %>% 
-  pack_rows('Predator detection model', 7, 15, hline_before = TRUE) %>% 
-  pack_rows('Predator-prey co-occurrence model', 16, 57, hline_before = TRUE) %>% 
-  pack_rows('Prey detection model', 58, 63, hline_before = TRUE, hline_after = TRUE) %>% 
-  row_spec(0, bold=TRUE, font_size = 14, align='c') %>% 
-  add_header_above(c(" " = 6,
+  kable_classic(full_width=FALSE) %>% 
+  pack_rows('Predator occupancy model', 1, 3) %>% 
+  pack_rows('Autologistic term', 4, 8) %>% 
+  pack_rows('Predator-prey co-occurrence model', 9, 48) %>% 
+  row_spec(12, extra_css = "border-bottom: 1px solid")  %>% 
+  row_spec(16, extra_css = "border-bottom: 1px solid")  %>% 
+  row_spec(20, extra_css = "border-bottom: 1px solid")  %>% 
+  row_spec(24, extra_css = "border-bottom: 1px solid")  %>% 
+  row_spec(28, extra_css = "border-bottom: 1px solid")  %>% 
+  row_spec(32, extra_css = "border-bottom: 2px solid")  %>% 
+  row_spec(36, extra_css = "border-bottom: 1px solid")  %>% 
+  row_spec(40, extra_css = "border-bottom: 1px solid")  %>% 
+  row_spec(44, extra_css = "border-bottom: 1px solid")  %>% 
+  pack_rows('Prey detection model', 49, 54) %>% 
+  pack_rows('Predator detection model', 55, 63) %>% 
+  row_spec(0, bold=TRUE, font_size = 10, align='c') %>% 
+  add_header_above(c(" " = 8,
                      "95% CI" = 2),
-                   font_size=18, 
+                   font_size=10, 
                    bold=TRUE, 
-                   align = 'c')->params_table
+                   align = 'c') -> param.table
 
-params_table
+param.table
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# fit_summary %>% 
+#   kbl(digits = 2, align = c('l', 'l', 'l', 'c', 'c', 'c', 'c', 'c'), 
+#       booktabs = TRUE, 
+#       format = 'latex',
+#       longtable = TRUE, 
+#       # make sure to FALSE so it will show latex notation
+#       escape = FALSE) %>% 
+#   kable_classic(full_width=FALSE, font_size=12) %>% 
+#   pack_rows('Predator occupancy model', 1, 6) %>% 
+#   pack_rows('Predator detection model', 7, 15, hline_before = TRUE) %>% 
+#   pack_rows('Predator-prey co-occurrence model', 16, 57, hline_before = TRUE) %>% 
+#   pack_rows('Prey detection model', 58, 63, hline_before = TRUE, hline_after = TRUE) %>% 
+#   row_spec(0, bold=TRUE, font_size = 14, align='c') %>% 
+#   add_header_above(c(" " = 6,
+#                      "95% CI" = 2),
+#                    font_size=18, 
+#                    bold=TRUE, 
+#                    align = 'c')->params_table
+# 
+# params_table
 
 # fit_summary %>% 
 #   kbl(digits = 2, align = c('l','c', 'c', 'c', 'c', 'c'), 
